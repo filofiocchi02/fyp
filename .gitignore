@@ -1,0 +1,11 @@
+# Directories
+data/
+saved_models/
+.venvfyp/
+figures/
+
+# Files 
+*.png
+*.pkl
+*.csv
+*xlsx
