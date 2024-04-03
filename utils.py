@@ -23,6 +23,7 @@ from matplotlib.ticker import FuncFormatter
 import matplotlib.patches as mpatches
 
 
+
 def create_design_matrix(df_train, df_test, features, output_feature):
     X_train, y_train = df_train[features].to_numpy(), df_train[output_feature].to_numpy()
     X_test, y_test = df_test[features].to_numpy(), df_test[output_feature].to_numpy()
