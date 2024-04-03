@@ -106,8 +106,8 @@ def evaluate_and_save_metrics(model_name, y_train, y_test, y_train_pred, y_test_
     train_mae = mean_absolute_error(y_train, y_train_pred)    
     test_mae = mean_absolute_error(y_test, y_test_pred) 
 
-    train_percentage_within_interval = "-"
-    test_percentage_within_interval = "-"
+    train_percentage_within_interval, test_percentage_within_interval = "-", "-"
+    train_percentage_within_interval2, test_percentage_within_interval2 = "-", "-"
 
     if y_train_stddevs is not None and y_test_stddevs is not None:
         train_percentage_within_interval, test_percentage_within_interval = calc_percentages_in_interval(y_train, y_test, y_train_pred, y_test_pred, y_train_stddevs, y_test_stddevs, ci)
@@ -411,3 +411,61 @@ def save_preds(name, y_test_pred, y_test_stddevs, filename="preds.csv"):
     return df_existing
 
 
+def plot_confidence_interval_bar_grid(y_test_pred_list, y_test_std_list, y_test_list, bins=20, rmses=None, titles=None, save_path=None):
+    plt.rc('font', size=14)
+    
+    # Compute the t-values of the confidence intervals based on Z-scores
+    t_values = np.array([stats.norm.ppf(i/bins + (1-i/bins)/2) for i in range(1, bins+1)])
+    fig, axes = plt.subplots(2, 2, figsize=(12, 12))
+
+    for i, (y_test_pred, y_test_std, y_test) in enumerate(zip(y_test_pred_list, y_test_std_list, y_test_list)):
+        percentages_within_interval = []
+        for t_value in t_values:
+            lower_bounds = y_test_pred.ravel() - t_value * y_test_std
+            upper_bounds = y_test_pred.ravel() + t_value * y_test_std
+
+            # Count number of data points within the confidence interval
+            is_within_interval = np.logical_and(y_test >= lower_bounds, y_test <= upper_bounds)
+            num_within_interval = np.sum(is_within_interval)
+
+            # Calculate the percentage of data points within the confidence interval
+            percentage_within_interval = (num_within_interval / len(y_test)) * 100
+            percentages_within_interval.append(percentage_within_interval)
+
+        row = i // 2
+        col = i % 2
+
+        bars = axes[row, col].bar(np.arange(1, bins+1)*100/bins, percentages_within_interval, color='#76b5c5', width=80/bins, edgecolor='black', alpha=0.9, label='Percentage of Residuals within Interval')
+        axes[row, col].plot([0, 100], [0, 100], color='red', linestyle='--', label='Expected')
+        
+        # Calculate differences between the blue bars and the expected line
+        expectations = np.arange(1, bins+1)*100/bins
+        differences = np.array(percentages_within_interval) - expectations
+
+        # Plot individual red bars for each discrepancy
+        for j, difference in enumerate(differences):
+            if difference != 0:
+                axes[row, col].bar((j+1)*100/bins, abs(difference), bottom=min(percentages_within_interval[j], expectations[j]), color='red', width=80/bins, edgecolor='black', alpha=0.3)
+                
+        axes[row, col].text(0, 100, f'MCE: {max(abs(differences)):.2f}', ha='left', va='top') 
+        if rmses is not None and len(rmses) > i:
+            axes[row, col].text(0, 90, f'RMSE: {rmses[i]:.2f}', ha='left', va='top') 
+
+        axes[row, col].set_xlabel('Confidence Intervals')
+        axes[row, col].set_ylabel('Percentage within Interval (%)')
+        
+        # Set custom titles if provided
+        if titles is not None and len(titles) > i:
+            axes[row, col].set_title(titles[i])
+        else:
+            axes[row, col].set_title(f'Plot {i+1}')
+
+    handles, labels = axes[0, 0].get_legend_handles_labels()
+    fig.legend(handles=handles, labels=labels, loc='lower center', bbox_to_anchor=(0.5, -0.03), ncol=2)
+    fig.tight_layout()
+
+    if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        plt.savefig(save_path, bbox_inches='tight')  # Use bbox_inches='tight' to include the legend in the saved figure
+
+    plt.show()
