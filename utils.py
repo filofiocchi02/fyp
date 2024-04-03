@@ -81,9 +81,24 @@ def plot_means_variances(y_true, y_means, y_stddevs, save_path=None):
 
     plt.show()
 
+
+def calc_percentages_in_interval(y_train, y_test, y_train_pred, y_test_pred, y_train_stddevs, y_test_stddevs, ci):
+    z_value = stats.norm.ppf((1 + ci) / 2) 
+    train_lower_bound = y_train_pred - z_value * y_train_stddevs
+    train_upper_bound = y_train_pred + z_value * y_train_stddevs
+
+    test_lower_bound = y_test_pred - z_value * y_test_stddevs
+    test_upper_bound = y_test_pred + z_value * y_test_stddevs
+
+    train_within_interval = np.sum(np.logical_and(y_train.ravel() >= train_lower_bound, y_train.ravel() <= train_upper_bound))
+    test_within_interval = np.sum(np.logical_and(y_test.ravel() >= test_lower_bound, y_test.ravel() <= test_upper_bound))
+
+    train_percentage_within_interval = (train_within_interval / len(y_train.ravel())) * 100
+    test_percentage_within_interval = (test_within_interval / len(y_test.ravel())) * 100
+    return train_percentage_within_interval, test_percentage_within_interval
+
     
-def evaluate_and_save_metrics(model_name, y_train, y_test, y_train_pred, y_test_pred, y_train_stddevs=None, y_test_stddevs=None, ci=0.99, output_file="results.csv"):
-    z_value = stats.norm.ppf((1 + ci) / 2)
+def evaluate_and_save_metrics(model_name, y_train, y_test, y_train_pred, y_test_pred, y_train_stddevs=None, y_test_stddevs=None, ci=0.99, ci2=0.95, output_file="results.csv"):
     
     train_rmse = np.sqrt(mean_squared_error(y_train, y_train_pred))
     test_rmse = np.sqrt(mean_squared_error(y_test, y_test_pred))
@@ -94,18 +109,9 @@ def evaluate_and_save_metrics(model_name, y_train, y_test, y_train_pred, y_test_
     train_percentage_within_interval = "-"
     test_percentage_within_interval = "-"
 
-    if y_train_stddevs is not None and y_test_stddevs is not None:      
-        train_lower_bound = y_train_pred - z_value * y_train_stddevs
-        train_upper_bound = y_train_pred + z_value * y_train_stddevs
-
-        test_lower_bound = y_test_pred - z_value * y_test_stddevs
-        test_upper_bound = y_test_pred + z_value * y_test_stddevs
-
-        train_within_interval = np.sum(np.logical_and(y_train.ravel() >= train_lower_bound, y_train.ravel() <= train_upper_bound))
-        test_within_interval = np.sum(np.logical_and(y_test.ravel() >= test_lower_bound, y_test.ravel() <= test_upper_bound))
-
-        train_percentage_within_interval = (train_within_interval / len(y_train.ravel())) * 100
-        test_percentage_within_interval = (test_within_interval / len(y_test.ravel())) * 100
+    if y_train_stddevs is not None and y_test_stddevs is not None:
+        train_percentage_within_interval, test_percentage_within_interval = calc_percentages_in_interval(y_train, y_test, y_train_pred, y_test_pred, y_train_stddevs, y_test_stddevs, ci)
+        train_percentage_within_interval2, test_percentage_within_interval2 = calc_percentages_in_interval(y_train, y_test, y_train_pred, y_test_pred, y_train_stddevs, y_test_stddevs, ci2)
 
     print(f"Train RMSE: {train_rmse:.3f}")
     print(f"Test RMSE: {test_rmse:.3f}")
@@ -116,6 +122,10 @@ def evaluate_and_save_metrics(model_name, y_train, y_test, y_train_pred, y_test_
           f"{train_percentage_within_interval}%" if isinstance(train_percentage_within_interval, str) else f"{train_percentage_within_interval:.2f}%")
     print(f"Percentage of Test Data Points within {ci*100:.2f}% CI: " +
           f"{test_percentage_within_interval}%" if isinstance(test_percentage_within_interval, str) else f"{test_percentage_within_interval:.2f}%")
+    print(f"Percentage of Test Data Points within {ci*100:.2f}% CI: " +
+          f"{train_percentage_within_interval2}%" if isinstance(train_percentage_within_interval2, str) else f"{train_percentage_within_interval2:.2f}%")
+    print(f"Percentage of Test Data Points within {ci*100:.2f}% CI: " +
+          f"{test_percentage_within_interval2}%" if isinstance(test_percentage_within_interval2, str) else f"{test_percentage_within_interval2:.2f}%")
     
     if model_name is not None:
         new_row = pd.DataFrame({
@@ -125,7 +135,9 @@ def evaluate_and_save_metrics(model_name, y_train, y_test, y_train_pred, y_test_
             "Test RMSE": [round(test_rmse, 2)],
             "Test MAE": [round(test_mae, 2)],
             f"Test % within {ci*100:.2f}% CI": [test_percentage_within_interval if isinstance(test_percentage_within_interval, str) \
-                                                else round(test_percentage_within_interval, 2)]
+                                                else round(test_percentage_within_interval, 2)],
+            f"Test % within {ci2*100:.2f}% CI": [test_percentage_within_interval2 if isinstance(test_percentage_within_interval2, str) \
+                                                else round(test_percentage_within_interval2, 2)]
         })
 
     try:
