@@ -2,6 +2,7 @@
 data/
 .venvfyp/
 .venvfyp2/
+.v*/
 figures/
 GPy/
 

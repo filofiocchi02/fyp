@@ -116,15 +116,16 @@ def evaluate_and_save_metrics(model_name, y_train, y_test, y_train_pred, y_test_
     print(f"Percentage of Test Data Points within {ci*100:.2f}% CI: " +
           f"{test_percentage_within_interval}%" if isinstance(test_percentage_within_interval, str) else f"{test_percentage_within_interval:.2f}%")
     
-    new_row = pd.DataFrame({
-        "Model Name": [model_name],
-        "Train RMSE": [round(train_rmse, 2)],
-        "Train MAE": [round(train_mae, 2)],
-        "Test RMSE": [round(test_rmse, 2)],
-        "Test MAE": [round(test_mae, 2)],
-        f"Test % within {ci*100:.2f}% CI": [test_percentage_within_interval if isinstance(test_percentage_within_interval, str) \
-                                            else round(test_percentage_within_interval, 2)]
-    })
+    if model_name is not None:
+        new_row = pd.DataFrame({
+            "Model Name": [model_name],
+            "Train RMSE": [round(train_rmse, 2)],
+            "Train MAE": [round(train_mae, 2)],
+            "Test RMSE": [round(test_rmse, 2)],
+            "Test MAE": [round(test_mae, 2)],
+            f"Test % within {ci*100:.2f}% CI": [test_percentage_within_interval if isinstance(test_percentage_within_interval, str) \
+                                                else round(test_percentage_within_interval, 2)]
+        })
 
     try:
         results_df = pd.read_csv(output_file)
@@ -132,7 +133,7 @@ def evaluate_and_save_metrics(model_name, y_train, y_test, y_train_pred, y_test_
         results_df = pd.DataFrame(columns=list(new_row.columns))
     if model_name in results_df["Model Name"].values:
         results_df.loc[results_df["Model Name"] == model_name] = new_row.values
-    else:
+    elif model_name is not None:
         results_df = pd.concat([results_df, new_row], ignore_index=True)
     results_df.to_csv(output_file, index=False)
 
@@ -319,46 +320,6 @@ def overwrite(model_filepath):
     return model_filepath
 
 
-# def plot_confidence_interval_bar_v2(y_test_pred, y_test_std, y_test, bins=20):
-#     plt.rc('font', size=14)
-    
-#     # Compute the t-values of the confidence intervals based on Z-scores
-#     t_values = np.array([stats.norm.ppf(i/bins + (1-i/bins)/2) for i in range(1, bins+1)])
-
-#     percentages_within_interval = []
-#     for t_value in t_values:
-#         lower_bounds = y_test_pred.ravel() - t_value * y_test_std
-#         upper_bounds = y_test_pred.ravel() + t_value * y_test_std
-
-#         # Count number of data points within the confidence interval
-#         is_within_interval = np.logical_and(y_test >= lower_bounds, y_test <= upper_bounds)
-#         num_within_interval = np.sum(is_within_interval)
-
-#         # Calculate the percentage of data points within the confidence interval
-#         percentage_within_interval = (num_within_interval / len(y_test)) * 100
-#         percentages_within_interval.append(percentage_within_interval)
-
-#     plt.figure(figsize=(8, 8))
-#     # Plotting histogram
-#     plt.bar(np.arange(1, bins+1)*100/bins, percentages_within_interval, color='lightblue', width=80/bins, edgecolor='black', alpha=0.7, label='Percentage of Residuals within Interval')
-    
-#     # Plot the expected diagonal line (red line)
-#     plt.plot([0, 100], [0, 100], color='red', linestyle='--', label='Expected')
-    
-#     # Calculate differences between the blue bars and the expected line
-#     differences = np.array(percentages_within_interval) - np.arange(1, bins+1)*100/bins
-
-#     # Plot the red translucent area representing differences
-#     plt.fill_between(np.arange(1, bins+1)*100/bins, np.arange(1, bins+1)*100/bins, np.arange(1, bins+1)*100/bins + differences, color='red', alpha=0.3)
-
-#     plt.xlabel('Confidence Intervals')
-#     plt.ylabel('Percentage within Interval (%)')
-#     plt.title('Histogram of Percentage of Residuals within the Confidence Intervals')
-#     plt.legend()
-
-#     plt.show()
-
-
 def plot_confidence_interval_bar(y_test_pred, y_test_std, y_test, bins=20, save_path=None):
     plt.rc('font', size=14)
     
@@ -435,3 +396,5 @@ def save_preds(name, y_test_pred, y_test_stddevs, filename="preds.csv"):
     # Save to file
     df_existing.to_csv(filename, index=False)
     return df_existing
+
+
