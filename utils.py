@@ -119,13 +119,13 @@ def evaluate_and_save_metrics(model_name, y_train, y_test, y_train_pred, y_test_
     print(f"Test MAE: {test_mae:.3f}")
 
     print(f"Percentage of Test Data Points within {ci*100:.2f}% CI: " +
-          f"{train_percentage_within_interval}%" if isinstance(train_percentage_within_interval, str) else f"{train_percentage_within_interval:.2f}%")
+          (f"{train_percentage_within_interval}%" if isinstance(train_percentage_within_interval, str) else f"{train_percentage_within_interval:.2f}%"))
     print(f"Percentage of Test Data Points within {ci*100:.2f}% CI: " +
-          f"{test_percentage_within_interval}%" if isinstance(test_percentage_within_interval, str) else f"{test_percentage_within_interval:.2f}%")
+          (f"{test_percentage_within_interval}%" if isinstance(test_percentage_within_interval, str) else f"{test_percentage_within_interval:.2f}%"))
     print(f"Percentage of Test Data Points within {ci*100:.2f}% CI: " +
-          f"{train_percentage_within_interval2}%" if isinstance(train_percentage_within_interval2, str) else f"{train_percentage_within_interval2:.2f}%")
+          (f"{train_percentage_within_interval2}%" if isinstance(train_percentage_within_interval2, str) else f"{train_percentage_within_interval2:.2f}%"))
     print(f"Percentage of Test Data Points within {ci*100:.2f}% CI: " +
-          f"{test_percentage_within_interval2}%" if isinstance(test_percentage_within_interval2, str) else f"{test_percentage_within_interval2:.2f}%")
+          (f"{test_percentage_within_interval2}%" if isinstance(test_percentage_within_interval2, str) else f"{test_percentage_within_interval2:.2f}%"))
     
     if model_name is not None:
         new_row = pd.DataFrame({
