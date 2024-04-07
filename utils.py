@@ -416,7 +416,7 @@ def plot_confidence_interval_bar_grid(y_test_pred_list, y_test_std_list, y_test_
     
     # Compute the t-values of the confidence intervals based on Z-scores
     t_values = np.array([stats.norm.ppf(i/bins + (1-i/bins)/2) for i in range(1, bins+1)])
-    fig, axes = plt.subplots(2, 2, figsize=(12, 12))
+    fig, axes = plt.subplots(3, 2, figsize=(12, 18))
 
     for i, (y_test_pred, y_test_std, y_test) in enumerate(zip(y_test_pred_list, y_test_std_list, y_test_list)):
         percentages_within_interval = []
@@ -467,5 +467,43 @@ def plot_confidence_interval_bar_grid(y_test_pred_list, y_test_std_list, y_test_
     if save_path:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         plt.savefig(save_path, bbox_inches='tight')  # Use bbox_inches='tight' to include the legend in the saved figure
+
+    plt.show()
+
+
+def plot_confidence_interval_combined(y_test_pred_list, y_test_std_list, y_test_list, bins=20, rmses=None, titles=None, save_path=None):
+    plt.rc('font', size=14)
+    fig, ax = plt.subplots(figsize=(12, 8))
+    
+    # Compute the t-values of the confidence intervals based on Z-scores
+    t_values = np.array([stats.norm.ppf(i/bins + (1-i/bins)/2) for i in range(1, bins+1)])
+    # colors = plt.cm.viridis(np.linspace(0, 1, len(y_test_pred_list)))
+    colors = ['#DC653D', '#222A35', '#445469', '#8497B0', '#772E15', '#52883B', '#9A46D4']
+
+    for i, (y_test_pred, y_test_std, y_test) in enumerate(zip(y_test_pred_list, y_test_std_list, y_test_list)):
+        percentages_within_interval = []
+        for t_value in t_values:
+            lower_bounds = y_test_pred.ravel() - t_value * y_test_std
+            upper_bounds = y_test_pred.ravel() + t_value * y_test_std
+
+            is_within_interval = np.logical_and(y_test >= lower_bounds, y_test <= upper_bounds)
+            num_within_interval = np.sum(is_within_interval)
+            percentage_within_interval = (num_within_interval / len(y_test)) * 100
+            percentages_within_interval.append(percentage_within_interval)
+
+        actual_percentages = np.arange(1, bins+1)*100/bins
+        ax.plot(actual_percentages, percentages_within_interval, 'o-', color=colors[i], label=titles[i] + (f': RMSE {rmses[i]:.2f}' if rmses and len(rmses) > i else ''))
+
+    ax.plot([0, 100], [0, 100], color='red', linestyle='--', label='Expected')
+
+    ax.set_xlabel('Expected Confidence (%)')
+    ax.set_ylabel('Percentage within Interval (%)')
+
+    ax.legend(loc='lower right', fontsize=22)
+    plt.tight_layout()
+
+    if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        plt.savefig(save_path, bbox_inches='tight')
 
     plt.show()

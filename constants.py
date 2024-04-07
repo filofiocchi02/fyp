@@ -87,7 +87,7 @@ COLAB = False
 DATA_PATH = "."
 
 # Set TRAIN to True if want to retrain the models
-TRAIN = True
+TRAIN = False
 
 # Set EVALUATE_FEATURE_IMPORTANCE to True if want to evaluate the feature importance for the BNN model
 EVALUATE_FEATURE_IMPORTANCE = False
