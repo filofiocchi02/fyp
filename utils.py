@@ -22,6 +22,7 @@ from pandas.errors import EmptyDataError
 from matplotlib.ticker import FuncFormatter
 import matplotlib.patches as mpatches
 
+from constants import *
 
 
 def create_design_matrix(df_train, df_test, features, output_feature):
@@ -505,5 +506,151 @@ def plot_confidence_interval_combined(y_test_pred_list, y_test_std_list, y_test_
     if save_path:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         plt.savefig(save_path, bbox_inches='tight')
+
+    plt.show()
+
+
+def qq_plot(normalized_residuals, ci=0.99):
+    fig = plt.figure(figsize=(6,6))
+    ax = fig.add_subplot(111)
+
+    z_value = stats.norm.ppf((1 + ci) / 2)
+
+    # Calculate theoretical quantiles and observed quantiles
+    theoretical_quantiles = stats.norm.ppf(np.linspace(0.5/len(normalized_residuals), 1-0.5/len(normalized_residuals), len(normalized_residuals)))
+    observed_quantiles = np.sort(normalized_residuals)
+    lower_bound = 0 - z_value 
+    upper_bound = 0 + z_value
+
+    ax.plot(theoretical_quantiles, observed_quantiles, 'o', color='black')
+
+    slope, intercept, _, _, _ = stats.linregress(theoretical_quantiles, observed_quantiles)
+    line = slope * theoretical_quantiles + intercept
+    ax.plot(theoretical_quantiles, line, color='gray', linestyle='--', label=f'Fit: slope={slope:.2f},\nintercept={intercept:.2f}')
+
+    ax.set_xlabel('Theoretical Quantiles')
+    ax.set_ylabel('Observed Quantiles')
+    plt.show()
+
+
+def update_plot(start_index, end_index, ci):
+        if end_index <= start_index:
+            clear_output(wait=True)
+            print("Error: End index must be greater than start index.")
+            return
+        
+        clear_output(wait=True)
+        
+        X_live, y_live = get_live_data(df, start_index, end_index)
+        
+        y_live_pred = np.array(model(X_live).mean()).ravel()
+        y_live_stddevs = np.array(model(X_live).stddev()).ravel()  
+        
+        normalized_residuals = (y_live - y_live_pred) / y_live_stddevs
+        
+        qq_plot(normalized_residuals, ci)
+
+def interactive_qq_plot(df, model):
+    start_index_widget = widgets.IntText(value=230, description='Start Index:', continuous_update=False)
+    end_index_widget = widgets.IntText(value=374, description='End Index:', continuous_update=False)
+    ci_widget = widgets.FloatSlider(value=0.99, min=0.90, max=0.999, step=0.001, description='Confidence Interval:', continuous_update=False)
+    
+    interact_manual = widgets.interactive(update_plot, start_index=start_index_widget, end_index=end_index_widget, ci=ci_widget)
+    
+    display(interact_manual)
+
+
+def calculate_normalized_residuals(model, X, y):
+    y_pred = np.array(model(X).mean()).ravel()
+    y_stddevs = np.array(model(X).stddev()).ravel()  
+    return (y - y_pred) / y_stddevs
+
+
+def detect_visible_faults(df, mask_fault, mask_period=None):
+
+    plt.figure(figsize=(10, 6))
+
+    plt.scatter(df['Wind.speed.me'], df[OUTPUT_FEATURE], color='0.3', alpha=0.7, linewidth=0, s=2, label='All Data Points')
+
+    red_points = df.loc[mask_fault]
+    plt.scatter(red_points['Wind.speed.me'], red_points[OUTPUT_FEATURE], color='red', marker='x', s=100, label='Selected Points')
+    if mask_period is not None:
+        yellow_points = df.loc[mask_period]
+        plt.scatter(yellow_points['Wind.speed.me'], yellow_points[OUTPUT_FEATURE], color='orange', alpha=0.5, label='143 Points Before')
+
+    plt.xlabel('Wind Speed (m/s)')
+    plt.ylabel('Wind Power (kW)')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+    indices = red_points
+    if mask_period is not None:
+        indices = df.loc[mask_fault | mask_period]
+    return indices
+
+
+def cusum_test_plot(residuals, datetime_values, target=0, k=0.5, h=5):
+    """
+    Perform a two-sided CUSUM test on residuals and plot.
+
+    Args:
+    residuals (list or array-like): List of normalized residuals.
+    datetime_values (list or array-like): List of datetime values corresponding to the residuals.
+    target (float): Target mean for normalized residuals.
+    k (float): Reference value (allowable slack before signal), typically a small positive number.
+    h (float): Decision interval (control limit).
+    """
+    datetime_values.reset_index(drop=True, inplace=True)  # Reset index
+
+    colors = ['#445469', '#772E15']
+    S_pos = [0]
+    S_neg = [0]
+
+    # Two-sided CUSUM test
+    for i in range(1, len(residuals)):
+        S_pos.append(max(0, S_pos[i-1] + residuals[i] - target - k))
+        S_neg.append(min(0, S_neg[i-1] + residuals[i] - target + k))
+        
+    # Find the index of the first occurrence where the control limit is surpassed
+    control_index_pos = next((i for i, value in enumerate(S_pos) if value > h), None)
+    control_index_neg = next((i for i, value in enumerate(S_neg) if value < -h), None)
+
+    # Plotting
+    plt.figure(figsize=(12, 6))
+    plt.plot(datetime_values, S_pos, label='S' + '\u2095', color=colors[0])
+    plt.plot(datetime_values, S_neg, label='S' + '\u2097', color=colors[1])
+    plt.axhline(y=h, color=colors[0], linestyle='--', label='-I')
+    plt.axhline(y=-h, color=colors[1], linestyle='--', label='I')
+    plt.xlabel('Date & Time')
+    plt.ylabel('Cumulative Sum')
+    plt.grid(True)
+
+    y_min = -10
+    y_max = 10
+    plt.ylim(-h * 1.5, h * 1.5)
+
+    if min(S_neg) < y_min:
+        plt.ylim(y_min * 1.1, y_max)
+    if max(S_pos) > y_max:
+        plt.ylim(y_min, y_max * 1.1)
+
+    indices = np.linspace(0, len(datetime_values) - 1, 5, dtype=int)
+    selected_dates = pd.to_datetime(datetime_values.iloc[indices])
+
+    plt.xticks(selected_dates, [date.strftime('%Y-%m-%d\n%H:%M') for date in selected_dates], rotation=45, ha='right')
+
+    if control_index_pos is not None:
+        plt.scatter(datetime_values.iloc[control_index_pos], S_pos[control_index_pos], color='none', edgecolor='red', linewidths=2, s=200, zorder=5)
+        plt.text(datetime_values.iloc[control_index_pos], S_pos[control_index_pos] + 0.75, 
+                 datetime_values.iloc[control_index_pos].strftime('%Y-%m-%d\n%H:%M'), 
+                 ha='right', fontsize=12, color='black', va='top', zorder=6,
+                 bbox=dict(boxstyle="round", ec='black', fc='white', alpha=0.5))
+    if control_index_neg is not None:
+        plt.scatter(datetime_values.iloc[control_index_neg], S_neg[control_index_neg], color='none', edgecolor='red', linewidths=2, s=200, zorder=5)
+        plt.text(datetime_values.iloc[control_index_neg], S_neg[control_index_neg] - 0.75, 
+                 datetime_values.iloc[control_index_neg].strftime('%Y-%m-%d\n%H:%M'), 
+                 ha='right', fontsize=12, color='black', va='top', zorder=6,
+                 bbox=dict(boxstyle="round", ec='black', fc='white', alpha=0.5))
+    plt.show()
 
     plt.show()
