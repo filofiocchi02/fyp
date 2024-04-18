@@ -3,3 +3,4 @@ Non-probabilistic MLP,27.43,16.39,27.97,16.68,93.09,96.23
 Epistemic Uncertainty BNN (Flipout) - 1.0% Sample,124.99,92.54,124.93,92.37,13.27,17.17
 Epistemic Uncertainty BNN (Flipout),29.38,18.14,29.74,18.25,19.75,25.59
 Probabilistic MLP (Separate Sub-models),49.15,30.16,49.05,30.07,86.98,93.31
+Prob. MLP (Fine-tuned),25.38,13.59,25.83,13.8,95.19,98.52
