@@ -84,7 +84,7 @@ TURBINE_ID = 5
 
 # Set to true if you run on Google Colab
 COLAB = False
-DATA_PATH = "."
+DATA_PATH = "./data"
 
 # Set TRAIN to True if want to retrain the models
 TRAIN = False
