@@ -478,7 +478,6 @@ def plot_confidence_interval_combined(y_test_pred_list, y_test_std_list, y_test_
     
     # Compute the t-values of the confidence intervals based on Z-scores
     t_values = np.array([stats.norm.ppf(i/bins + (1-i/bins)/2) for i in range(1, bins+1)])
-    # colors = plt.cm.viridis(np.linspace(0, 1, len(y_test_pred_list)))
     colors = ['#DC653D', '#222A35', '#445469', '#8497B0', '#772E15', '#52883B', '#9A46D4']
 
     for i, (y_test_pred, y_test_std, y_test) in enumerate(zip(y_test_pred_list, y_test_std_list, y_test_list)):

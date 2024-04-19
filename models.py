@@ -1,19 +1,8 @@
-import os
-from math import sqrt
-import numpy as np
-import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
-import scipy.stats as stats
-import tensorflow as tf
 import tensorflow.keras as keras
 import tensorflow_probability as tfp
-from tensorflow.keras.layers import Input, Conv1D, MaxPooling1D, Dense, Flatten, BatchNormalization, Concatenate, Dropout
+from tensorflow.keras.layers import Input, Conv1D, MaxPooling1D, Dense, Flatten, BatchNormalization, Concatenate
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
-from tensorflow_probability import distributions as tfd
-from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 from utils import *
 
@@ -103,7 +92,6 @@ def create_model_bnn(X_train, seed):
             activation = "relu"
         )(hidden2)
     
-    # Output Univariate Normal Probabilistic Layer
     dist_params = Dense(2)(hidden3)
     dist = tfp.layers.DistributionLambda(normal_softplus)(dist_params)
 
@@ -213,7 +201,6 @@ def create_model_multivariate_gaussian_only_diagonal(d, input_size, seed):
 
     concatenated_outputs = Concatenate()(outs)
     
-    # Define the distribution layer
     distribution_layer = tfp.layers.DistributionLambda(
         lambda t: multivariate_diagonal_normal_softplus(t[:, 0::2], t[:, 1::2], d)
     )
@@ -245,7 +232,6 @@ def create_model_multivariate_gaussian_only_diagonal_common(d, input_size, seed)
 
     concatenated_outputs = Concatenate()(outs)
     
-    # Define the distribution layer
     distribution_layer = tfp.layers.DistributionLambda(
         lambda t: multivariate_diagonal_normal_softplus(t[:, 0::2], t[:, 1::2], d)
     )
@@ -278,7 +264,6 @@ def create_model_multivariate_gaussian_with_covariance(d, input_size, seed):
     # Concatenate mean and lower triangular part of the covariance matrix
     concatenated_outputs = Concatenate()([out_mean, out_cov])
     
-    # Define the distribution layer
     distribution_layer = tfp.layers.DistributionLambda(
         lambda t: multivariate_covariance_normal_softplus(t[:, :d], t[:, d:], d)
     )
@@ -322,7 +307,7 @@ def create_model_finetune(X_train, generic_model, seed):
         layer.trainable = True
         l = layer(l)
 
-    # Note: set the learning rate to a smalller value to obtain a more accurate local minima
+    # NOTE: set the learning rate to a smalller value to obtain a more accurate local minima
     model_mlp_gaussian = Model(inputs=inputs, outputs=l)
     model_mlp_gaussian.compile(Adam(learning_rate=1e-4), loss=NLL)
 
