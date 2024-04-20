@@ -109,3 +109,5 @@ this for the best performing model to show that the variability of results based
 is almost none.
 """
 MODELS_SEED = 42
+
+SEED_BIAS_CHECK = False
