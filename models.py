@@ -6,8 +6,13 @@ from tensorflow.keras.optimizers import Adam
 
 from utils import *
 
-def create_model_mlp_non_probabilistic(X_train, seed):
+def reproducibility(seed):
+    np.random.seed(seed)
+    keras.backend.clear_session()
     keras.utils.set_random_seed(seed)
+
+def create_model_mlp_non_probabilistic(X_train, seed):
+    reproducibility(seed)
     
     inputs = Input(shape=(X_train.shape[1],))
     hidden = Dense(80, activation="relu")(inputs)
@@ -21,7 +26,7 @@ def create_model_mlp_non_probabilistic(X_train, seed):
     return model_mlp_non_probabilistic
 
 def create_model_bnn_non_probabilistic_flipout(X_train, seed):
-    keras.utils.set_random_seed(seed)
+    reproducibility(seed)
     
     inputs = Input(shape=(X_train.shape[1],))
     
@@ -62,7 +67,7 @@ def create_model_bnn_non_probabilistic_flipout(X_train, seed):
 
 
 def create_model_bnn(X_train, seed):
-    keras.utils.set_random_seed(seed) 
+    reproducibility(seed)
     
     kl_divergence_fn=lambda q, p, _: tfp.distributions.kl_divergence(q, p) / (X_train.shape[0] * 1.0)
         
@@ -102,7 +107,7 @@ def create_model_bnn(X_train, seed):
 
 
 def create_model_mlp_gaussian_separate(X_train, seed):
-    keras.utils.set_random_seed(seed)
+    reproducibility(seed)
     
     inputs = Input(shape=(X_train.shape[1],))
     mean_h1 = Dense(80, activation="relu")(inputs)
@@ -131,7 +136,7 @@ def create_model_mlp_gaussian_separate(X_train, seed):
 
 
 def create_model_mlp_gaussian_joint(X_train, seed):
-    keras.utils.set_random_seed(seed)
+    reproducibility(seed)
     
     inputs = Input(shape=(X_train.shape[1],))
     
@@ -157,7 +162,7 @@ def create_model_mlp_gaussian_joint(X_train, seed):
 
 
 def create_model_cnn_gaussian(X_train, seed):
-    keras.utils.set_random_seed(seed)
+    reproducibility(seed)
     
     inputs = Input(shape=(X_train.shape[1], 1))
     conv1d_layer = Conv1D(filters=32, kernel_size=5, activation='relu')(inputs)
@@ -179,7 +184,7 @@ def create_model_cnn_gaussian(X_train, seed):
 
 
 def create_model_multivariate_gaussian_only_diagonal(d, input_size, seed):
-    keras.utils.set_random_seed(seed)
+    reproducibility(seed)
     
     inputs = Input(shape=input_size)
     
@@ -215,7 +220,7 @@ def create_model_multivariate_gaussian_only_diagonal(d, input_size, seed):
 
 
 def create_model_multivariate_gaussian_only_diagonal_common(d, input_size, seed):
-    keras.utils.set_random_seed(seed)
+    reproducibility(seed)
     
     inputs = Input(shape=input_size)
     
@@ -246,7 +251,7 @@ def create_model_multivariate_gaussian_only_diagonal_common(d, input_size, seed)
 
 
 def create_model_multivariate_gaussian_with_covariance(d, input_size, seed):
-    keras.utils.set_random_seed(seed)
+    reproducibility(seed)
     
     inputs = Input(shape=input_size)
 
@@ -278,7 +283,7 @@ def create_model_multivariate_gaussian_with_covariance(d, input_size, seed):
 
 
 def create_model_mlp_gaussian_large(X_train_full, seed):
-    keras.utils.set_random_seed(seed)
+    reproducibility(seed)
 
     inputs = Input(shape=(X_train_full.shape[1],))
     hidden1 = Dense(300, activation="relu")(inputs)
@@ -296,7 +301,7 @@ def create_model_mlp_gaussian_large(X_train_full, seed):
 
 
 def create_model_finetune(X_train, generic_model, seed):
-    keras.utils.set_random_seed(seed)
+    reproducibility(seed)
 
     inputs = Input(shape=(X_train.shape[1],))
 

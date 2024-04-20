@@ -583,7 +583,7 @@ def detect_visible_faults(df, mask_fault, mask_period=None):
     return indices
 
 
-def cusum_test_plot(residuals, datetime_values, target=0, k=0.5, h=5):
+def cusum_test_plot(residuals, datetime_values, target=0, k=0.5, h=5, save_path=None):
     """Perform a two-sided CUSUM test on residuals and plot.
 
     Args:
@@ -593,8 +593,6 @@ def cusum_test_plot(residuals, datetime_values, target=0, k=0.5, h=5):
         k (float): Reference value (allowable slack before signal), typically a small positive number.
         h (float): Decision interval (control limit).
     """
-
-
     datetime_values.reset_index(drop=True, inplace=True)  # Reset index
 
     colors = ['#445469', '#772E15']
@@ -646,6 +644,8 @@ def cusum_test_plot(residuals, datetime_values, target=0, k=0.5, h=5):
                  datetime_values.iloc[control_index_neg].strftime('%Y-%m-%d\n%H:%M'), 
                  ha='right', fontsize=12, color='black', va='top', zorder=6,
                  bbox=dict(boxstyle="round", ec='black', fc='white', alpha=0.5))
+    if save_path:
+        plt.savefig(save_path, format='pdf', bbox_inches='tight')
     plt.show()
 
 
@@ -686,6 +686,7 @@ def plot_calibration_errors(y_test_pred_list, y_test_std_list, y_test_list, bins
             percentage_within_interval = (num_within_interval / len(y_test)) * 100
             percentages_within_interval.append(percentage_within_interval)
         calibration_error = np.array(percentages_within_interval) - actual_percentages
+        print(max(abs(calibration_error)))
         ax.scatter(actual_percentages, calibration_error, marker=markers[i], color=colors[i], label=titles[i], s=100)
 
     ax.set_xlim(0, 105)
@@ -694,12 +695,12 @@ def plot_calibration_errors(y_test_pred_list, y_test_std_list, y_test_list, bins
     ax.set_ylabel('Calibration Error', fontsize=18)
 
     plt.subplots_adjust(bottom=0.2)
-    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), fancybox=True, shadow=True, ncol=3, fontsize=18)
+    # ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), fancybox=True, shadow=True, ncol=3, fontsize=18)
 
     plt.tight_layout()
 
     if save_path:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        plt.savefig(save_path, bbox_inches='tight')
+        plt.savefig(save_path, format='pdf', bbox_inches='tight')
 
     plt.show()
