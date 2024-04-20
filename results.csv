@@ -3,15 +3,15 @@ Non-probabilistic MLP,27.27,16.32,27.85,16.59,96.24,93.21
 Epistemic Uncertainty BNN (Flipout) - 1.0% Sample,124.99,92.54,124.93,92.37,17.17,13.27
 Epistemic Uncertainty BNN (Flipout),29.38,18.11,29.75,18.28,25.64,19.66
 Probabilistic MLP (Separate Sub-models),28.28,15.16,29.1,15.42,98.22,94.01
-Prob. MLP (Fine-tuned),24.69,13.27,25.38,13.62,98.53,94.92
-Stochastic Output BNN (Flipout),29.64,16.27,30.06,16.47,94.5,98.38
-Prob. MLP,27.14,14.47,28.19,14.99,94.37,98.37
-Probabilistic CNN with Gaussian Output,32.4,18.51,33.38,18.95,91.28,97.35
-"Probabilistic Multivariate MLP (Only Diagonal, separate branches)",36.08,23.11,40.17,25.88,92.68,97.59
-Probabilistic Multivariate MLP (Only Diagonal),40.87,26.38,43.49,28.39,93.13,97.69
-Probabilistic Multivariate MLP (Lower Triangular Covariance Matrix),52.72,34.53,54.64,36.1,99.9,99.99
+Prob. MLP (Fine-tuned),24.86,13.43,25.57,13.8,98.53,95.11
+Stochastic Output BNN (Flipout),29.64,16.27,30.06,16.47,98.38,94.5
+Prob. MLP,27.14,14.47,28.19,14.99,98.37,94.37
+Probabilistic CNN with Gaussian Output,32.4,18.51,33.38,18.95,97.35,91.28
+"Probabilistic Multivariate MLP (Only Diagonal, separate branches)",38.03,24.2,42.06,26.91,97.78,92.77
+Probabilistic Multivariate MLP (Only Diagonal),41.47,26.83,44.26,28.96,97.26,91.7
+Probabilistic Multivariate MLP (Lower Triangular Covariance Matrix),53.46,34.23,56.5,36.53,99.98,99.95
 Large Prob. MLP,24.4,13.29,26.09,14.17,98.19,93.96
-Large MLP (Fine-tuned),22.08,11.83,23.58,12.63,93.1,97.75
+Large MLP (Fine-tuned),22.08,11.83,23.58,12.63,97.75,93.1
 OLS Regresion,98.53,68.0,99.2,68.5,-,-
 Ridge Regresion,98.53,68.01,99.2,68.5,-,-
 "GP (RBF, sparse)",44.92,30.48,45.17,30.44,97.32,94.31
