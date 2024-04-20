@@ -22,10 +22,24 @@ from pandas.errors import EmptyDataError
 from matplotlib.ticker import FuncFormatter
 import matplotlib.patches as mpatches
 
+from IPython.display import display
+import ipywidgets as widgets
+
 from constants import *
 
 
-def create_design_matrix(df_train, df_test, features, output_feature):
+def create_design_matrix(df_train: pd.DataFrame, df_test: pd.DataFrame, features, output_feature):
+    """Generates design matrix.
+
+    Args:
+        df_train (pd.DataFrame): training dataframe
+        df_test (pd.DataFrame): testing dataframe
+        features (list): input features
+        output_feature (str): output feature
+
+    Returns:
+        Tuple: desing matrices and scaler object
+    """
     X_train, y_train = df_train[features].to_numpy(), df_train[output_feature].to_numpy()
     X_test, y_test = df_test[features].to_numpy(), df_test[output_feature].to_numpy()
 
@@ -37,7 +51,39 @@ def create_design_matrix(df_train, df_test, features, output_feature):
     return X_train_scaled, X_test_scaled, y_train, y_test, scaler
 
 
+def plot_binned_residuals(y_true, y_means, num_bins=20):
+    """Generates bins and their means and standard deviations
+
+    Args:
+        y_true (np.array): _description_
+        y_means (np.array): _description_
+        num_bins (int, optional): number of bins. Defaults to 20.
+
+    Returns:
+        _type_: means and standard deviations of bins
+    """
+    bins = np.linspace(min(y_true), max(y_true), num_bins + 1)
+
+    bin_means = [0]*num_bins
+    bin_stddevs = [0]*num_bins
+
+    for i in range(num_bins):
+        mask = (y_true >= bins[i]) & (y_true < bins[i + 1])
+        if np.any(mask):
+            bin_means[i] = np.mean(y_true[mask])
+            bin_stddevs[i] = np.sqrt(mean_squared_error(y_means[mask], y_true[mask]))
+    return bin_means, bin_stddevs
+
+
 def plot_means_variances(y_true, y_means, y_stddevs, save_path=None):
+    """Plots two plots: predicted meam vs true and predicted std vs true.
+
+    Args:
+        y_true (np.array): output true values
+        y_means (np.array): output predicted values
+        y_stddevs (np.array): output predicted standard deviation
+        save_path (str, optional): Where to save the plot. Defaults to None.
+    """
     plt.rc('font', size=14)
     min_vals = np.min([np.min(y_true), np.min(y_means)])
     max_vals = np.max([np.max(y_true), np.max(y_means)])
@@ -51,19 +97,6 @@ def plot_means_variances(y_true, y_means, y_stddevs, save_path=None):
     plt.title('Fig (a): Predicted vs True Values')
     plt.xlabel('True Power Output')
     plt.ylabel('Predicted Power Output')
-    
-    def plot_binned_residuals(y_true, residuals, num_bins=20):
-        bins = np.linspace(min(y_true), max(y_true), num_bins + 1)
-
-        bin_means = [0]*num_bins
-        bin_stddevs = [0]*num_bins
-
-        for i in range(num_bins):
-            mask = (y_true >= bins[i]) & (y_true < bins[i + 1])
-            if np.any(mask):
-                bin_means[i] = np.mean(y_true[mask])
-                bin_stddevs[i] = np.sqrt(mean_squared_error(y_means[mask], y_true[mask]))
-        return bin_means, bin_stddevs
 
     bin_means, bin_stddevs = plot_binned_residuals(y_true, y_means, num_bins=20)
     
@@ -84,6 +117,23 @@ def plot_means_variances(y_true, y_means, y_stddevs, save_path=None):
 
 
 def calc_percentages_in_interval(y_train, y_test, y_train_pred, y_test_pred, y_train_stddevs, y_test_stddevs, ci):
+    """Given a confidence interval it calculates the percentage of true outputs within
+    the bounds of the confidence interval of the predicted density.
+
+    Args:
+        y_train (np.array): output true values (train set)
+        y_test (np.array): output true values (test set)
+        y_train_pred (np.array): output mean predictions (train set)
+        y_test_pred (np.array): output mean predictions (test set)
+        y_train_stddevs (np.array): output std predictions (train set)
+        y_test_stddevs (np.array): output std predictions (test set)
+        ci (float): confidence level 0.0 to 1.0
+
+    Returns:
+        Tuple: percentages of true outputs within the bounds of the
+        confidence interval of the predicted density for both training and testing set
+    """
+    assert ci >= 0.0 and ci <= 1.0, "Confidence level \'ci\' must be betwen 0 and 1"
     z_value = stats.norm.ppf((1 + ci) / 2) 
     train_lower_bound = y_train_pred - z_value * y_train_stddevs
     train_upper_bound = y_train_pred + z_value * y_train_stddevs
@@ -100,6 +150,20 @@ def calc_percentages_in_interval(y_train, y_test, y_train_pred, y_test_pred, y_t
 
     
 def evaluate_and_save_metrics(model_name, y_train, y_test, y_train_pred, y_test_pred, y_train_stddevs=None, y_test_stddevs=None, ci=0.99, ci2=0.95, output_file="results.csv"):
+    """Evaluates the specified predictions and saves the metrics' results into the output_file, if specified.
+
+    Args:
+        model_name (str): model name
+        y_train (np.array): output true values (train set)
+        y_test (np.array): output true values (test set)
+        y_train_pred (np.array): output mean predictions (train set)
+        y_test_pred (np.array): output mean predictions (test set)
+        y_train_stddevs (np.array, optional): output std predictions (train set). Defaults to None.
+        y_test_stddevs (np.array, optional): output std predictions (test set). Defaults to None.
+        ci (float, optional): confidence level 0.0 to 1.0. Defaults to 0.99.
+        ci2 (float, optional): confidence level 0.0 to 1.0. Defaults to 0.95.
+        output_file (str, optional): file where to save the metrics. Defaults to "results.csv".
+    """
     
     train_rmse = np.sqrt(mean_squared_error(y_train, y_train_pred))
     test_rmse = np.sqrt(mean_squared_error(y_test, y_test_pred))
@@ -114,6 +178,7 @@ def evaluate_and_save_metrics(model_name, y_train, y_test, y_train_pred, y_test_
         train_percentage_within_interval, test_percentage_within_interval = calc_percentages_in_interval(y_train, y_test, y_train_pred, y_test_pred, y_train_stddevs, y_test_stddevs, ci)
         train_percentage_within_interval2, test_percentage_within_interval2 = calc_percentages_in_interval(y_train, y_test, y_train_pred, y_test_pred, y_train_stddevs, y_test_stddevs, ci2)
 
+    # Print metrics
     print(f"Train RMSE: {train_rmse:.3f}")
     print(f"Test RMSE: {test_rmse:.3f}")
     print(f"Train MAE: {train_mae:.3f}")
@@ -128,6 +193,7 @@ def evaluate_and_save_metrics(model_name, y_train, y_test, y_train_pred, y_test_
     print(f"Percentage of Test Data Points within {ci*100:.2f}% CI: " +
           (f"{test_percentage_within_interval2}%" if isinstance(test_percentage_within_interval2, str) else f"{test_percentage_within_interval2:.2f}%"))
     
+    # Generate new row of the dataframe
     if model_name is not None:
         new_row = pd.DataFrame({
             "Model Name": [model_name],
@@ -141,6 +207,7 @@ def evaluate_and_save_metrics(model_name, y_train, y_test, y_train_pred, y_test_
                                                 else round(test_percentage_within_interval2, 2)]
         })
 
+    # Update the output_file with the new row, either appending or overwriting
     try:
         results_df = pd.read_csv(output_file)
     except FileNotFoundError or EmptyDataError:
@@ -150,26 +217,6 @@ def evaluate_and_save_metrics(model_name, y_train, y_test, y_train_pred, y_test_
     elif model_name is not None:
         results_df = pd.concat([results_df, new_row], ignore_index=True)
     results_df.to_csv(output_file, index=False)
-
-    
-def add_coverage_prob_plot(plot, label, y_test_pred, y_test_std, y_test, bins=20):    
-    # Compute the t-values of the confidence intervals based on Z-scores
-    t_values = np.array([stats.norm.ppf(i/bins + (1-i/bins)/2) for i in range(1, bins+1)])
-
-    percentages_within_interval = []
-    for t_value in t_values:
-        lower_bounds = y_test_pred.ravel() - t_value * y_test_std
-        upper_bounds = y_test_pred.ravel() + t_value * y_test_std
-
-        # Count number of data points within the confidence interval
-        is_within_interval = np.logical_and(y_test >= lower_bounds, y_test <= upper_bounds)
-        num_within_interval = np.sum(is_within_interval)
-
-        # Calculate the percentage of data points within the confidence interval
-        percentage_within_interval = (num_within_interval / len(y_test)) * 100
-        percentages_within_interval.append(percentage_within_interval)
-
-    plot.scatter(np.arange(1, bins+1)*100/bins, percentages_within_interval, label=f'Percentage: {label}')
     
     
 def plot_confidence_interval_scatter(y_test_pred, y_test_std, y_test, bins=20, save_path=None):
@@ -472,43 +519,6 @@ def plot_confidence_interval_bar_grid(y_test_pred_list, y_test_std_list, y_test_
     plt.show()
 
 
-def plot_confidence_interval_combined(y_test_pred_list, y_test_std_list, y_test_list, bins=20, rmses=None, titles=None, save_path=None):
-    plt.rc('font', size=14)
-    fig, ax = plt.subplots(figsize=(12, 8))
-    
-    # Compute the t-values of the confidence intervals based on Z-scores
-    t_values = np.array([stats.norm.ppf(i/bins + (1-i/bins)/2) for i in range(1, bins+1)])
-    colors = ['#DC653D', '#222A35', '#445469', '#8497B0', '#772E15', '#52883B', '#9A46D4']
-
-    for i, (y_test_pred, y_test_std, y_test) in enumerate(zip(y_test_pred_list, y_test_std_list, y_test_list)):
-        percentages_within_interval = []
-        for t_value in t_values:
-            lower_bounds = y_test_pred.ravel() - t_value * y_test_std
-            upper_bounds = y_test_pred.ravel() + t_value * y_test_std
-
-            is_within_interval = np.logical_and(y_test >= lower_bounds, y_test <= upper_bounds)
-            num_within_interval = np.sum(is_within_interval)
-            percentage_within_interval = (num_within_interval / len(y_test)) * 100
-            percentages_within_interval.append(percentage_within_interval)
-
-        actual_percentages = np.arange(1, bins+1)*100/bins
-        ax.plot(actual_percentages, percentages_within_interval, 'o-', color=colors[i], label=titles[i] + (f': RMSE {rmses[i]:.2f}' if rmses and len(rmses) > i else ''))
-
-    ax.plot([0, 100], [0, 100], color='red', linestyle='--', label='Expected')
-
-    ax.set_xlabel('Expected Confidence (%)')
-    ax.set_ylabel('Percentage within Interval (%)')
-
-    ax.legend(loc='lower right', fontsize=22)
-    plt.tight_layout()
-
-    if save_path:
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        plt.savefig(save_path, bbox_inches='tight')
-
-    plt.show()
-
-
 def qq_plot(normalized_residuals, ci=0.99):
     fig = plt.figure(figsize=(6,6))
     ax = fig.add_subplot(111)
@@ -533,21 +543,21 @@ def qq_plot(normalized_residuals, ci=0.99):
 
 
 def update_plot(start_index, end_index, ci):
-        if end_index <= start_index:
-            clear_output(wait=True)
-            print("Error: End index must be greater than start index.")
-            return
-        
+    if end_index <= start_index:
         clear_output(wait=True)
-        
-        X_live, y_live = get_live_data(df, start_index, end_index)
-        
-        y_live_pred = np.array(model(X_live).mean()).ravel()
-        y_live_stddevs = np.array(model(X_live).stddev()).ravel()  
-        
-        normalized_residuals = (y_live - y_live_pred) / y_live_stddevs
-        
-        qq_plot(normalized_residuals, ci)
+        print("Error: End index must be greater than start index.")
+        return
+    
+    clear_output(wait=True)
+    
+    X_live, y_live = get_live_data(df, start_index, end_index)
+    
+    y_live_pred = np.array(model(X_live).mean()).ravel()
+    y_live_stddevs = np.array(model(X_live).stddev()).ravel()  
+    
+    normalized_residuals = (y_live - y_live_pred) / y_live_stddevs
+    
+    qq_plot(normalized_residuals, ci)
 
 def interactive_qq_plot(df, model):
     start_index_widget = widgets.IntText(value=230, description='Start Index:', continuous_update=False)
@@ -566,7 +576,6 @@ def calculate_normalized_residuals(model, X, y):
 
 
 def detect_visible_faults(df, mask_fault, mask_period=None):
-
     plt.figure(figsize=(10, 6))
 
     plt.scatter(df['Wind.speed.me'], df[OUTPUT_FEATURE], color='0.3', alpha=0.7, linewidth=0, s=2, label='All Data Points')
@@ -589,16 +598,17 @@ def detect_visible_faults(df, mask_fault, mask_period=None):
 
 
 def cusum_test_plot(residuals, datetime_values, target=0, k=0.5, h=5):
-    """
-    Perform a two-sided CUSUM test on residuals and plot.
+    """Perform a two-sided CUSUM test on residuals and plot.
 
     Args:
-    residuals (list or array-like): List of normalized residuals.
-    datetime_values (list or array-like): List of datetime values corresponding to the residuals.
-    target (float): Target mean for normalized residuals.
-    k (float): Reference value (allowable slack before signal), typically a small positive number.
-    h (float): Decision interval (control limit).
+       residuals (list or array-like): List of normalized residuals.
+        datetime_values (list or array-like): List of datetime values corresponding to the residuals.
+        target (float): Target mean for normalized residuals.
+        k (float): Reference value (allowable slack before signal), typically a small positive number.
+        h (float): Decision interval (control limit).
     """
+
+
     datetime_values.reset_index(drop=True, inplace=True)  # Reset index
 
     colors = ['#445469', '#772E15']
@@ -651,5 +661,59 @@ def cusum_test_plot(residuals, datetime_values, target=0, k=0.5, h=5):
                  ha='right', fontsize=12, color='black', va='top', zorder=6,
                  bbox=dict(boxstyle="round", ec='black', fc='white', alpha=0.5))
     plt.show()
+
+
+def plot_calibration_errors(y_test_pred_list, y_test_std_list, y_test_list, bins=20, titles=None, save_path=None):
+    """Plots the calibration errors
+
+    Args:
+        y_test_pred_list (_type_): list of predicted test means
+        y_test_std_list (_type_): list of predicted test standard deviations
+        y_test_list (_type_): list of true test values
+        bins (int, optional): number of bins. Defaults to 20.
+        titles (_type_, optional): titles. Defaults to None.
+        save_path (_type_, optional): file path to save to. Defaults to None.
+    """
+    plt.rc('font', size=18)
+    fig, ax = plt.subplots(figsize=(12, 8))
+
+    p_values = np.array([stats.norm.ppf(i/bins + (1-i/bins)/2) for i in range(1, bins)]).squeeze()
+    t_values = np.concatenate((p_values, np.array([stats.norm.ppf(0.995)])))
+    
+    markers = ['o', 's', '^', '>', '<', '*']
+    colors = ['#DC653D', '#222A35', '#445469', '#8497B0', '#772E15', '#52883B']
+
+    assert len(y_test_pred_list) == len(markers) and len(y_test_std_list) == len(markers) and len(y_test_list) == len(markers), \
+        "predictiion lists and colors should have the same length"
+
+    ax.plot([0, 100], [0, 0], color='red', linestyle='--')
+
+    for i, (y_test_pred, y_test_std, y_test) in enumerate(zip(y_test_pred_list, y_test_std_list, y_test_list)):
+        actual_percentages = np.concatenate((np.arange(1, bins)*100/bins, np.array([99])))
+        percentages_within_interval = []
+        for t_value in t_values:
+            lower_bounds = y_test_pred.ravel() - t_value * y_test_std
+            upper_bounds = y_test_pred.ravel() + t_value * y_test_std
+
+            is_within_interval = np.logical_and(y_test >= lower_bounds, y_test <= upper_bounds)
+            num_within_interval = np.sum(is_within_interval)
+            percentage_within_interval = (num_within_interval / len(y_test)) * 100
+            percentages_within_interval.append(percentage_within_interval)
+        calibration_error = np.array(percentages_within_interval) - actual_percentages
+        ax.scatter(actual_percentages, calibration_error, marker=markers[i], color=colors[i], label=titles[i], s=100)
+
+    ax.set_xlim(0, 105)
+    ax.set_xticks(list(range(0, 91, 10)) + [99])
+    ax.set_xlabel('% Confidence Interval', fontsize=18)
+    ax.set_ylabel('Calibration Error', fontsize=18)
+
+    plt.subplots_adjust(bottom=0.2)
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), fancybox=True, shadow=True, ncol=3, fontsize=18)
+
+    plt.tight_layout()
+
+    if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        plt.savefig(save_path, bbox_inches='tight')
 
     plt.show()
