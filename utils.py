@@ -649,7 +649,7 @@ def cusum_test_plot(residuals, datetime_values, target=0, k=0.5, h=5, save_path=
     plt.show()
 
 
-def plot_calibration_errors(y_test_pred_list, y_test_std_list, y_test_list, bins=20, titles=None, save_path=None):
+def plot_calibration_errors(y_test_pred_list, y_test_std_list, y_test_list, bins=20, titles=None, with_legend=False, save_path=None):
     """Plots the calibration errors
 
     Args:
@@ -695,12 +695,13 @@ def plot_calibration_errors(y_test_pred_list, y_test_std_list, y_test_list, bins
     ax.set_ylabel('Calibration Error', fontsize=18)
 
     plt.subplots_adjust(bottom=0.2)
-    # ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), fancybox=True, shadow=True, ncol=3, fontsize=18)
+    if with_legend:
+        ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), fancybox=True, shadow=True, ncol=3, fontsize=18)
 
     plt.tight_layout()
 
     if save_path:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         plt.savefig(save_path, format='pdf', bbox_inches='tight')
-
-    plt.show()
+    if with_legend:
+        plt.show()
