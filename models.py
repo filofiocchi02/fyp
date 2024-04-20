@@ -307,7 +307,7 @@ def create_model_finetune(X_train, generic_model, seed):
         layer.trainable = True
         l = layer(l)
 
-    # NOTE: set the learning rate to a smalller value to obtain a more accurate local minima
+    # NOTE: set the learning rate to a smaller value to obtain a more accurate local minima
     model_mlp_gaussian = Model(inputs=inputs, outputs=l)
     model_mlp_gaussian.compile(Adam(learning_rate=1e-4), loss=NLL)
 
