@@ -1,7 +1,7 @@
 # Directories
 data/
 .v*/
-figures/
+figures/*/
 GPy/
 
 # Files 
