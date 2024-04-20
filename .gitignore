@@ -1,10 +1,9 @@
 # Directories
 data/
 .v*/
-figures/*/
+figures/*
 GPy/
 
 # Files 
 *.png
-*.pkl
 *xlsx
