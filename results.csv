@@ -12,3 +12,6 @@ Probabilistic Multivariate MLP (Only Diagonal),40.87,26.38,43.49,28.39,93.13,97.
 Probabilistic Multivariate MLP (Lower Triangular Covariance Matrix),52.72,34.53,54.64,36.1,99.9,99.99
 Large Prob. MLP,24.4,13.29,26.09,14.17,93.96,98.19
 Large MLP (Fine-tuned),22.08,11.83,23.58,12.63,93.1,97.75
+OLS Regresion,98.53,68.0,99.2,68.5,-,-
+Ridge Regresion,98.53,68.01,99.2,68.5,-,-
+"GP (RBF, sparse)",78.27,56.33,79.17,56.79,97.82,99.33
