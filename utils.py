@@ -189,9 +189,9 @@ def evaluate_and_save_metrics(model_name, y_train, y_test, y_train_pred, y_test_
           (f"{train_percentage_within_interval}%" if isinstance(train_percentage_within_interval, str) else f"{train_percentage_within_interval:.2f}%"))
     print(f"Percentage of Test Data Points within {ci*100:.2f}% CI: " +
           (f"{test_percentage_within_interval}%" if isinstance(test_percentage_within_interval, str) else f"{test_percentage_within_interval:.2f}%"))
-    print(f"Percentage of Test Data Points within {ci*100:.2f}% CI: " +
+    print(f"Percentage of Test Data Points within {ci2*100:.2f}% CI: " +
           (f"{train_percentage_within_interval2}%" if isinstance(train_percentage_within_interval2, str) else f"{train_percentage_within_interval2:.2f}%"))
-    print(f"Percentage of Test Data Points within {ci*100:.2f}% CI: " +
+    print(f"Percentage of Test Data Points within {ci2*100:.2f}% CI: " +
           (f"{test_percentage_within_interval2}%" if isinstance(test_percentage_within_interval2, str) else f"{test_percentage_within_interval2:.2f}%"))
     
     # Generate new row of the dataframe
@@ -561,25 +561,25 @@ def calculate_normalized_residuals(model, X, y):
     return (y - y_pred) / y_stddevs
 
 
-def detect_visible_faults(df, mask_fault, mask_period=None):
+def detect_visible_faults(df, mask_fault, mask_period, save_path=None):
     plt.figure(figsize=(10, 6))
 
     plt.scatter(df['Wind.speed.me'], df[OUTPUT_FEATURE], color='0.3', alpha=0.7, linewidth=0, s=2, label='All Data Points')
 
     red_points = df.loc[mask_fault]
-    plt.scatter(red_points['Wind.speed.me'], red_points[OUTPUT_FEATURE], color='red', marker='x', s=100, label='Selected Points')
+    plt.scatter(red_points['Wind.speed.me'], red_points[OUTPUT_FEATURE], color='red', marker='x', s=100, label='Forced Stop')
     if mask_period is not None:
         yellow_points = df.loc[mask_period]
-        plt.scatter(yellow_points['Wind.speed.me'], yellow_points[OUTPUT_FEATURE], color='orange', alpha=0.5, label='143 Points Before')
+        plt.scatter(yellow_points['Wind.speed.me'], yellow_points[OUTPUT_FEATURE], color='orange', alpha=0.5, label='24h window')
 
     plt.xlabel('Wind Speed (m/s)')
     plt.ylabel('Wind Power (kW)')
     plt.legend()
     plt.grid(True)
+    if save_path:
+        plt.savefig(save_path, format='pdf', bbox_inches='tight')
     plt.show()
-    indices = red_points
-    if mask_period is not None:
-        indices = df.loc[mask_fault | mask_period]
+    indices = df.loc[mask_period]
     return indices
 
 
@@ -686,7 +686,8 @@ def plot_calibration_errors(y_test_pred_list, y_test_std_list, y_test_list, bins
             percentage_within_interval = (num_within_interval / len(y_test)) * 100
             percentages_within_interval.append(percentage_within_interval)
         calibration_error = np.array(percentages_within_interval) - actual_percentages
-        print(max(abs(calibration_error)))
+
+        print(f"{titles[i]}, MCE: {max(abs(calibration_error))}")
         ax.scatter(actual_percentages, calibration_error, marker=markers[i], color=colors[i], label=titles[i], s=100)
 
     ax.set_xlim(0, 105)
